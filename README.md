@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PartSelect Chat Agent
 
-## Getting Started
+An AI-powered customer support agent for [PartSelect.com](https://www.partselect.com/), specialized in refrigerator and dishwasher replacement parts. Built with a multi-agent architecture where a lightweight router classifies user intent and delegates to domain-specific specialists.
 
-First, run the development server:
+## What It Does
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Find parts** - Search by part number, keyword, symptom, or model number
+- **Check compatibility** - Verify if a part fits a specific appliance model
+- **Troubleshoot problems** - Diagnose issues with step-by-step guidance
+- **Installation help** - Get difficulty ratings and install instructions
+- **Track orders** - Look up order status and shipping info
+
+## Architecture
+
+```
+User ──► Guardrails ──► Memory ──► Router (gpt-4o-mini)
+                                      │
+                          ┌───────────┼───────────┐
+                          ▼           ▼           ▼
+                    Product       Repair       Order
+                    Expert        Expert       Support
+                   (gpt-4o)     (gpt-4o)     (gpt-4o)
+                          │           │           │
+                          └───────────┼───────────┘
+                                      ▼
+                               SSE Streaming
+                                      │
+                                      ▼
+                              Next.js Frontend
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Router** uses gpt-4o-mini for fast, cheap intent classification (~200ms)
+- **Specialists** use gpt-4o with focused prompts and only the tools they need
+- **Responses stream** token-by-token via Server-Sent Events
+- **Guardrails** block off-topic queries and prompt injection before hitting the LLM
+- **Memory** keeps conversations manageable by summarizing older messages
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Component | Technology |
+|-----------|-----------|
+| LLM | GPT-4o + GPT-4o-mini (OpenAI) |
+| Backend | FastAPI, Python |
+| Frontend | Next.js, React, TypeScript |
+| Databases | SQLite (relational) + ChromaDB (semantic search) |
+| Streaming | Server-Sent Events |
+| Scraper | Playwright with stealth mode |
 
-## Learn More
+## Quick Start
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# Backend
+cd backend
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+echo 'OPENAI_API_KEY=sk-your-key' > .env
+PYTHONPATH=. uvicorn main:app --port 8000
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Frontend (new terminal)
+npm install && npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open http://localhost:3000
 
-## Deploy on Vercel
+See [SETUP.md](SETUP.md) for detailed instructions and [ARCHITECTURE.md](ARCHITECTURE.md) for the full technical breakdown.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+backend/
+├── main.py                     # FastAPI app + SSE streaming
+├── agents/
+│   ├── base.py                 # Specialist base class
+│   ├── router.py               # Intent classifier
+│   ├── specialists.py          # Product, Repair, Order agents
+│   ├── memory.py               # Conversation memory
+│   └── guardrails.py           # Input/output validation
+├── tools/tool_definitions.py   # 6 tools grouped by specialist
+├── data/
+│   ├── database.py             # SQLite (28 parts, 20 models)
+│   ├── vector_store.py         # ChromaDB semantic search
+│   └── load_data.py            # Data loader
+└── scraper/scraper.py          # Playwright scraper
+
+src/app/
+├── page.tsx                    # Chat UI with streaming
+└── globals.css                 # PartSelect-branded theme
+```
