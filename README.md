@@ -2,6 +2,14 @@
 
 An AI-powered customer support agent for [PartSelect.com](https://www.partselect.com/), specialized in refrigerator and dishwasher replacement parts. Built with a multi-agent architecture where a lightweight router classifies user intent and delegates to domain-specific specialists.
 
+## Demo
+
+https://www.loom.com/share/16d774ea0adb4f06b49e779dc22ac075
+
+## Architecture, Design choices and all other Details:
+
+https://github.com/sai-navyanth-p/part-select-agent/blob/main/ARCHITECTURE.md
+
 ## What It Does
 
 - **Find parts** - Search by part number, keyword, symptom, or model number
